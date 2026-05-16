@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genetic Algorithm Selection Simulator</title>
+    <style>
+        body { font-family: system-ui, sans-serif; background: #f9fafb; padding: 20px; color: #111827; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { text-align: center; }
+        .controls { display: flex; gap: 40px; margin-bottom: 20px; padding: 20px; background: #f3f4f6; border-radius: 8px; }
+        .control-group { flex: 1; }
+        input[type="range"] { width: 100%; margin-top: 10px; }
+        .panels { display: flex; gap: 20px; }
+        .panel { flex: 1; padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px; }
+        .panel h2 { font-size: 1.2rem; margin-top: 0; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
+        .item { padding: 10px; margin-bottom: 8px; border-radius: 6px; display: flex; justify-content: space-between; font-weight: bold; }
+        .item.parent { background: #dbeafe; color: #1e3a8a; border: 1px solid #bfdbfe; }
+        .item.offspring { background: #dcfce3; color: #14532d; border: 1px solid #bbf7d0; }
+        .summary { margin-top: 20px; padding: 15px; background: #fffbeb; color: #92400e; border: 1px solid #fde68a; border-radius: 8px; font-weight: 500; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>GA Selection Simulator (N=5)</h1>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label>Generation Gap: <span id="gapValue">40</span>%</label>
+            <input type="range" id="gapSlider" min="0" max="100" step="20" value="40">
+        </div>
+        <div class="control-group">
+            <label>Elitism Rate: <span id="eliteValue">20</span>%</label>
+            <input type="range" id="eliteSlider" min="0" max="100" step="20" value="20">
+        </div>
+    </div>
+
+    <div class="panels">
+        <div class="panel">
+            <h2>Current Parents</h2>
+            <div id="parentsList"></div>
+        </div>
+        <div class="panel">
+            <h2>New Offspring</h2>
+            <div id="offspringList"></div>
+        </div>
+        <div class="panel" style="border-color: #cbd5e1; background: #f8fafc;">
+            <h2>Next Generation</h2>
+            <div id="nextGenList"></div>
+        </div>
+    </div>
+
+    <div id="summary" class="summary"></div>
+</div>
+
+<script>
+    // Initial Data
+    const N = 5;
+    const parents = [
+        { id: 'P1', fitness: 90, type: 'parent' },
+        { id: 'P2', fitness: 75, type: 'parent' },
+        { id: 'P3', fitness: 60, type: 'parent' },
+        { id: 'P4', fitness: 45, type: 'parent' },
+        { id: 'P5', fitness: 30, type: 'parent' }
+    ];
+    
+    const offspring = [
+        { id: 'O1', fitness: 85, type: 'offspring' },
+        { id: 'O2', fitness: 70, type: 'offspring' },
+        { id: 'O3', fitness: 50, type: 'offspring' },
+        { id: 'O4', fitness: 25, type: 'offspring' },
+        { id: 'O5', fitness: 15, type: 'offspring' }
+    ];
+
+    // DOM Elements
+    const gapSlider = document.getElementById('gapSlider');
+    const eliteSlider = document.getElementById('eliteSlider');
+    const gapValue = document.getElementById('gapValue');
+    const eliteValue = document.getElementById('eliteValue');
+    const parentsList = document.getElementById('parentsList');
+    const offspringList = document.getElementById('offspringList');
+    const nextGenList = document.getElementById('nextGenList');
+    const summary = document.getElementById('summary');
+
+    // Render static lists
+    function renderList(data, container) {
+        container.innerHTML = data.map(item => 
+            `<div class="item ${item.type}"><span>${item.id}</span><span>${item.fitness}</span></div>`
+        ).join('');
+    }
+    renderList(parents, parentsList);
+    renderList(offspring, offspringList);
+
+    // Main calculation logic
+    function updateSimulation() {
+        const gapPct = parseInt(gapSlider.value);
+        const elitePct = parseInt(eliteSlider.value);
+        
+        gapValue.innerText = gapPct;
+        eliteValue.innerText = elitePct;
+
+        let baseOffspringSpots = Math.round(N * (gapPct / 100));
+        let eliteCount = Math.round(N * (elitePct / 100));
+
+        // Elitism overrides generation gap if there aren't enough spots for elites
+        let actualOffspringSpots = baseOffspringSpots;
+        if (eliteCount > (N - baseOffspringSpots)) {
+            actualOffspringSpots = N - eliteCount;
+        }
+
+        let retainedParentsCount = N - actualOffspringSpots;
+
+        // Slice top performers
+        let keptParents = parents.slice(0, retainedParentsCount);
+        let keptOffspring = offspring.slice(0, actualOffspringSpots);
+
+        // Combine and sort
+        let nextGen = [...keptParents, ...keptOffspring].sort((a, b) => b.fitness - a.fitness);
+
+        // Render result
+        renderList(nextGen, nextGenList);
+
+        // Update summary text
+        let eliteMsg = eliteCount > 0 ? `Elitism guaranteed survival for the top ${eliteCount} parent(s). ` : '';
+        summary.innerText = `${eliteMsg}The algorithm retained ${retainedParentsCount} parent(s) and inserted the top ${actualOffspringSpots} new offspring.`;
+    }
+
+    // Event Listeners
+    gapSlider.addEventListener('input', updateSimulation);
+    eliteSlider.addEventListener('input', updateSimulation);
+
+    // Initial load
+    updateSimulation();
+</script>
+
+</body>
+</html>
